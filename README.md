@@ -19,32 +19,47 @@
 ./scripts/generate-report.sh 2026-02-14
 
 # 出力先を指定（別リポジトリなど）
-./scripts/generate-report.sh --output ~/Code/nippo-mine
+./scripts/generate-report.sh --output /path/to/your-repo/reports
 
 # 組み合わせ
-GITHUB_USER=foo ./scripts/generate-report.sh --output ~/Code/nippo-mine 2026-02-14
+GITHUB_USER=foo ./scripts/generate-report.sh --output /path/to/your-repo/reports 2026-02-14
 ```
 
-### 2リポジトリ構成
+### GitHub Actions (Reusable Workflow)
 
-日報データを private リポジトリで管理する場合の推奨構成:
+日報データを自分のリポジトリ (private 推奨) で管理できます。以下のワークフローをコピーして `.github/workflows/daily-report.yml` として配置してください:
 
-| リポジトリ | 公開 | 用途 |
-|-----------|------|------|
-| `nippo` | public | スクリプト・ワークフロー |
-| `nippo-mine` | private | 日報データの格納 |
+```yaml
+name: Daily Report
 
-```bash
-# ローカル実行例
-cd nippo
-./scripts/generate-report.sh --output ../nippo-mine/reports
+on:
+  workflow_dispatch:
+    inputs:
+      date:
+        description: "Target date (YYYY-MM-DD). Defaults to today."
+        required: false
+        type: string
+      github_user:
+        description: "GitHub username. Defaults to the actor."
+        required: false
+        type: string
+
+jobs:
+  report:
+    uses: shun0918/nippo/.github/workflows/generate-report.yml@main
+    with:
+      date: ${{ inputs.date || '' }}
+      github_user: ${{ inputs.github_user || '' }}
+    secrets:
+      gh_pat: ${{ secrets.GH_PAT }}
 ```
 
-### GitHub Actions
+#### セットアップ手順
 
-`nippo-mine` リポジトリ側のワークフローから実行できます。詳細は `nippo-mine` の README を参照してください。
-
-> **注意:** プライベートリポジトリの活動を取得するには、`repo` スコープを持つ Personal Access Token (PAT) を `GH_PAT` シークレットとして登録してください。
+1. 日報データ用のリポジトリを作成 (private 推奨)
+2. 上記のワークフローファイルを配置
+3. (任意) プライベートリポジトリの活動も取得したい場合は、`repo` スコープを持つ [Personal Access Token](https://github.com/settings/tokens) を `GH_PAT` シークレットとして登録
+4. **Actions** タブから「Daily Report」を手動実行
 
 ## レポート内容
 
