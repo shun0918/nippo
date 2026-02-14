@@ -1,0 +1,40 @@
+name: Feature Request
+description: 新しい機能の提案
+title: ""
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        機能の提案をありがとうございます。
+        以下の項目を記入してください。
+
+  - type: textarea
+    id: what
+    attributes:
+      label: What
+      description: どのような機能か
+      placeholder: |
+        - 実現したいことを箇条書きで記載
+    validations:
+      required: true
+
+  - type: textarea
+    id: why
+    attributes:
+      label: Why
+      description: なぜその機能が必要か
+      placeholder: |
+        - その機能が必要な理由を記載
+    validations:
+      required: true
+
+  - type: textarea
+    id: how
+    attributes:
+      label: How
+      description: どのように実現するか
+      placeholder: |
+        - 実装方針やアプローチを記載
+    validations:
+      required: true
