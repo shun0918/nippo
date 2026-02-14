@@ -1,25 +1,76 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# --- Config ---
+NIPPO_CONFIG="${XDG_CONFIG_HOME:-$HOME/.config}/nippo/config"
+if [[ -f "$NIPPO_CONFIG" ]]; then
+  # shellcheck source=/dev/null
+  source "$NIPPO_CONFIG"
+fi
+
 # --- Usage ---
 usage() {
   echo "Usage: $(basename "$0") [OPTIONS] [YYYY-MM-DD]"
   echo ""
   echo "Options:"
-  echo "  -o, --output DIR   Output directory for reports (default: ./reports)"
+  echo "  -o, --output DIR   Output directory for reports"
+  echo "  --setup            Create config file interactively"
   echo "  -h, --help         Show this help"
+  echo ""
+  echo "Config: $NIPPO_CONFIG"
+  exit 0
+}
+
+# --- Setup ---
+run_setup() {
+  echo "nippo setup"
+  echo "==========="
+  echo ""
+  echo "Config file: $NIPPO_CONFIG"
+  echo ""
+
+  # GitHub user
+  local default_user
+  default_user="$(gh api user --jq '.login' 2>/dev/null || true)"
+  read -rp "GitHub username [${default_user}]: " input_user
+  local github_user="${input_user:-$default_user}"
+
+  # Output directory
+  read -rp "Report output directory (absolute path): " input_output
+  local output_dir="$input_output"
+
+  if [[ -z "$output_dir" ]]; then
+    echo "Error: Output directory is required." >&2
+    exit 1
+  fi
+
+  # Write config
+  mkdir -p "$(dirname "$NIPPO_CONFIG")"
+  cat > "$NIPPO_CONFIG" <<EOC
+# nippo config
+GITHUB_USER="$github_user"
+OUTPUT_DIR="$output_dir"
+EOC
+
+  echo ""
+  echo "Config saved to $NIPPO_CONFIG"
+  cat "$NIPPO_CONFIG"
   exit 0
 }
 
 # --- Parse arguments ---
-OUTPUT_DIR=""
+# CLI args override config values
+CLI_OUTPUT_DIR=""
 TARGET_DATE=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     -o|--output)
-      OUTPUT_DIR="$2"
+      CLI_OUTPUT_DIR="$2"
       shift 2
+      ;;
+    --setup)
+      run_setup
       ;;
     -h|--help)
       usage
@@ -31,6 +82,9 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+# CLI > config > default
+OUTPUT_DIR="${CLI_OUTPUT_DIR:-${OUTPUT_DIR:-}}"
+GITHUB_USER="${GITHUB_USER:-}"
 TARGET_DATE="${TARGET_DATE:-$(date +%Y-%m-%d)}"
 
 # --- Prerequisites ---
