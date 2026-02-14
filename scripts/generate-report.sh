@@ -104,11 +104,11 @@ GENERATED_AT="$(date '+%Y-%m-%d %H:%M:%S %Z')"
     echo "_No commits._"
   else
     echo "$COMMITS_JSON" | jq -r '
-      group_by(.repository.nameWithOwner)
+      group_by(.repository.fullName)
       | .[]
-      | "### " + .[0].repository.nameWithOwner,
+      | "### " + .[0].repository.fullName,
       "",
-      (.[] | "- [`" + (.sha[0:7]) + "`](https://github.com/" + .repository.nameWithOwner + "/commit/" + .sha + ") " + .commit.message),
+      (.[] | "- [`" + (.sha[0:7]) + "`](https://github.com/" + .repository.fullName + "/commit/" + .sha + ") " + (.commit.message | split("\n") | .[0])),
       ""
     '
   fi
