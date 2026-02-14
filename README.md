@@ -86,6 +86,27 @@ jobs:
 
 > **注意:** プライベートリポジトリの活動を取得するには、`repo` スコープを持つ [Personal Access Token](https://github.com/settings/tokens) を `GH_PAT` シークレットとして登録してください。
 
+## Ignore 設定
+
+特定の Organization やリポジトリを日報から除外できます。`~/.config/nippo/ignore` にパターンを記述してください。
+
+```bash
+# Organization 全体を除外
+my-company/*
+
+# 特定リポジトリを除外
+shun0918/secret-project
+
+# ワイルドカード
+*/internal-*
+```
+
+- 1行1パターン（`fnmatch` / bash glob 形式）
+- `#` 以降はコメント
+- 空行は無視
+
+対象は `owner/repo` 形式の文字列に対してマッチングされます。
+
 ## レポート内容
 
 - **Commits** — 当日のコミット（リポジトリ別）
