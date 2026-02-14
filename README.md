@@ -12,40 +12,39 @@
 ### ローカル実行
 
 ```bash
-# 当日の日報を生成
+# 当日の日報を生成（カレントディレクトリの reports/ に出力）
 ./scripts/generate-report.sh
 
 # 日付を指定して生成
 ./scripts/generate-report.sh 2026-02-14
 
-# GitHubユーザーを指定して生成
-GITHUB_USER=foo ./scripts/generate-report.sh
+# 出力先を指定（別リポジトリなど）
+./scripts/generate-report.sh --output ~/Code/nippo-mine
+
+# 組み合わせ
+GITHUB_USER=foo ./scripts/generate-report.sh --output ~/Code/nippo-mine 2026-02-14
+```
+
+### 2リポジトリ構成
+
+日報データを private リポジトリで管理する場合の推奨構成:
+
+| リポジトリ | 公開 | 用途 |
+|-----------|------|------|
+| `nippo` | public | スクリプト・ワークフロー |
+| `nippo-mine` | private | 日報データの格納 |
+
+```bash
+# ローカル実行例
+cd nippo
+./scripts/generate-report.sh --output ../nippo-mine/reports
 ```
 
 ### GitHub Actions
 
-1. リポジトリの **Actions** タブから「Generate Daily Report」ワークフローを選択
-2. **Run workflow** をクリックし、日付やユーザー名を入力（任意）
-3. 生成されたレポートは自動的にコミット・プッシュされる
+`nippo-mine` リポジトリ側のワークフローから実行できます。詳細は `nippo-mine` の README を参照してください。
 
 > **注意:** プライベートリポジトリの活動を取得するには、`repo` スコープを持つ Personal Access Token (PAT) を `GH_PAT` シークレットとして登録してください。
-
-## ディレクトリ構成
-
-```
-nippo/
-├── README.md
-├── .gitignore
-├── scripts/
-│   └── generate-report.sh        # レポート生成スクリプト
-├── .github/
-│   └── workflows/
-│       └── generate-report.yml    # GitHub Actions ワークフロー
-└── reports/                       # 日報格納（自動生成）
-    └── YYYY/
-        └── MM/
-            └── YYYY-MM-DD.md
-```
 
 ## レポート内容
 

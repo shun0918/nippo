@@ -1,6 +1,38 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# --- Usage ---
+usage() {
+  echo "Usage: $(basename "$0") [OPTIONS] [YYYY-MM-DD]"
+  echo ""
+  echo "Options:"
+  echo "  -o, --output DIR   Output directory for reports (default: ./reports)"
+  echo "  -h, --help         Show this help"
+  exit 0
+}
+
+# --- Parse arguments ---
+OUTPUT_DIR=""
+TARGET_DATE=""
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -o|--output)
+      OUTPUT_DIR="$2"
+      shift 2
+      ;;
+    -h|--help)
+      usage
+      ;;
+    *)
+      TARGET_DATE="$1"
+      shift
+      ;;
+  esac
+done
+
+TARGET_DATE="${TARGET_DATE:-$(date +%Y-%m-%d)}"
+
 # --- Prerequisites ---
 for cmd in gh jq; do
   if ! command -v "$cmd" &>/dev/null; then
@@ -8,9 +40,6 @@ for cmd in gh jq; do
     exit 1
   fi
 done
-
-# --- Date ---
-TARGET_DATE="${1:-$(date +%Y-%m-%d)}"
 
 # Validate date format
 if [[ ! "$TARGET_DATE" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
@@ -48,9 +77,12 @@ fi
 echo "Generating report for $GITHUB_USER on $TARGET_DATE ..."
 
 # --- Output path ---
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-REPORT_DIR="$REPO_ROOT/reports/$YEAR/$MONTH"
+if [[ -z "$OUTPUT_DIR" ]]; then
+  SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+  REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+  OUTPUT_DIR="$REPO_ROOT/reports"
+fi
+REPORT_DIR="$OUTPUT_DIR/$YEAR/$MONTH"
 REPORT_FILE="$REPORT_DIR/$TARGET_DATE.md"
 
 mkdir -p "$REPORT_DIR"
