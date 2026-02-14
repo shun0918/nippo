@@ -7,27 +7,57 @@
 - [gh](https://cli.github.com/) (GitHub CLI) — 認証済みであること (`gh auth login`)
 - [jq](https://jqlang.github.io/jq/) — JSONパーサー
 
+## セットアップ
+
+### 1. 日報データ用のリポジトリを作成
+
+日報データは別リポジトリ (private 推奨) で管理します:
+
+```bash
+gh repo create your-name/my-reports --private --clone
+```
+
+### 2. 設定ファイルを作成
+
+対話形式でセットアップ:
+
+```bash
+./scripts/generate-report.sh --setup
+```
+
+以下の内容で `~/.config/nippo/config` が作成されます:
+
+```bash
+# nippo config
+GITHUB_USER="your-name"
+OUTPUT_DIR="/path/to/my-reports/reports"
+```
+
+手動で作成・編集しても OK です。
+
+| 設定項目 | 説明 | 必須 |
+|---------|------|------|
+| `GITHUB_USER` | GitHub ユーザー名 | いいえ (`gh` から自動取得) |
+| `OUTPUT_DIR` | レポート出力先ディレクトリ | いいえ (デフォルト: `./reports`) |
+
 ## 使い方
 
 ### ローカル実行
 
 ```bash
-# 当日の日報を生成（カレントディレクトリの reports/ に出力）
+# 当日の日報を生成（OUTPUT_DIR に出力）
 ./scripts/generate-report.sh
 
-# 日付を指定して生成
+# 日付を指定
 ./scripts/generate-report.sh 2026-02-14
 
-# 出力先を指定（別リポジトリなど）
-./scripts/generate-report.sh --output /path/to/your-repo/reports
-
-# 組み合わせ
-GITHUB_USER=foo ./scripts/generate-report.sh --output /path/to/your-repo/reports 2026-02-14
+# --output で一時的に出力先を変更（config より優先）
+./scripts/generate-report.sh --output /tmp/reports
 ```
 
 ### GitHub Actions (Reusable Workflow)
 
-日報データを自分のリポジトリ (private 推奨) で管理できます。以下のワークフローをコピーして `.github/workflows/daily-report.yml` として配置してください:
+日報データ用リポジトリに以下のワークフローを `.github/workflows/daily-report.yml` として配置してください:
 
 ```yaml
 name: Daily Report
@@ -54,12 +84,7 @@ jobs:
       gh_pat: ${{ secrets.GH_PAT }}
 ```
 
-#### セットアップ手順
-
-1. 日報データ用のリポジトリを作成 (private 推奨)
-2. 上記のワークフローファイルを配置
-3. (任意) プライベートリポジトリの活動も取得したい場合は、`repo` スコープを持つ [Personal Access Token](https://github.com/settings/tokens) を `GH_PAT` シークレットとして登録
-4. **Actions** タブから「Daily Report」を手動実行
+> **注意:** プライベートリポジトリの活動を取得するには、`repo` スコープを持つ [Personal Access Token](https://github.com/settings/tokens) を `GH_PAT` シークレットとして登録してください。
 
 ## レポート内容
 
