@@ -8,6 +8,18 @@ if [[ -f "$NIPPO_CONFIG" ]]; then
   source "$NIPPO_CONFIG"
 fi
 
+# --- Ignore patterns ---
+NIPPO_IGNORE="${XDG_CONFIG_HOME:-$HOME/.config}/nippo/ignore"
+IGNORE_PATTERNS=()
+if [[ -f "$NIPPO_IGNORE" ]]; then
+  while IFS= read -r line; do
+    line="${line%%#*}"          # コメント除去
+    line="${line// /}"          # 空白トリム
+    [[ -z "$line" ]] && continue
+    IGNORE_PATTERNS+=("$line")
+  done < "$NIPPO_IGNORE"
+fi
+
 # --- Usage ---
 usage() {
   echo "Usage: $(basename "$0") [OPTIONS] [YYYY-MM-DD]"
@@ -18,6 +30,7 @@ usage() {
   echo "  -h, --help         Show this help"
   echo ""
   echo "Config: $NIPPO_CONFIG"
+  echo "Ignore: $NIPPO_IGNORE"
   exit 0
 }
 
@@ -55,6 +68,8 @@ EOC
   echo ""
   echo "Config saved to $NIPPO_CONFIG"
   cat "$NIPPO_CONFIG"
+  echo ""
+  echo "Ignore patterns: $NIPPO_IGNORE"
   exit 0
 }
 
@@ -148,6 +163,37 @@ if [[ -f "$REPORT_FILE" ]]; then
   EXISTING_NOTES="$(sed -n '/^## Notes$/,$ { /^## Notes$/d; p; }' "$REPORT_FILE")"
 fi
 
+# --- Ignore filter ---
+filter_ignored() {
+  local json="$1"
+  local repo_field="$2"  # "fullName" or "nameWithOwner"
+  if [[ ${#IGNORE_PATTERNS[@]} -eq 0 ]]; then
+    echo "$json"
+    return
+  fi
+  local exclude_repos=()
+  local repos
+  repos="$(echo "$json" | jq -r ".[].repository.$repo_field // empty" | sort -u)"
+  while IFS= read -r repo; do
+    [[ -z "$repo" ]] && continue
+    for pattern in "${IGNORE_PATTERNS[@]}"; do
+      # shellcheck disable=SC2254
+      if [[ "$repo" == $pattern ]]; then
+        exclude_repos+=("$repo")
+        break
+      fi
+    done
+  done <<< "$repos"
+  if [[ ${#exclude_repos[@]} -eq 0 ]]; then
+    echo "$json"
+    return
+  fi
+  local jq_filter
+  jq_filter="$(printf '%s\n' "${exclude_repos[@]}" | jq -R . | jq -s .)"
+  echo "$json" | jq --argjson exclude "$jq_filter" \
+    '[.[] | select(.repository.'"$repo_field"' as $r | $exclude | index($r) | not)]'
+}
+
 # --- Collect GitHub data ---
 
 # 1. Commits
@@ -169,6 +215,13 @@ ISSUES_JSON="$(gh search issues --involves "$GITHUB_USER" --updated "$TARGET_DAT
 # 5. Reviews
 REVIEWS_JSON="$(gh search prs --reviewed-by "$GITHUB_USER" --updated "$TARGET_DATE" \
   --json repository,number,title,state,url --limit 100 2>/dev/null || echo '[]')"
+
+# --- Apply ignore filter ---
+COMMITS_JSON="$(filter_ignored "$COMMITS_JSON" "fullName")"
+CREATED_PRS_JSON="$(filter_ignored "$CREATED_PRS_JSON" "nameWithOwner")"
+MERGED_PRS_JSON="$(filter_ignored "$MERGED_PRS_JSON" "nameWithOwner")"
+ISSUES_JSON="$(filter_ignored "$ISSUES_JSON" "nameWithOwner")"
+REVIEWS_JSON="$(filter_ignored "$REVIEWS_JSON" "nameWithOwner")"
 
 # --- Generate timestamp ---
 GENERATED_AT="$(date '+%Y-%m-%d %H:%M:%S %Z')"
