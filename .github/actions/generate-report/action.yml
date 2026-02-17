@@ -31,5 +31,7 @@ runs:
       env:
         GH_TOKEN: ${{ inputs.gh_token }}
         GITHUB_USER: ${{ inputs.github_user }}
+        INPUT_OUTPUT: ${{ inputs.output }}
+        INPUT_DATE: ${{ inputs.date }}
       run: |
-        ./.nippo-tool/scripts/generate-report.sh --output "${{ inputs.output }}" ${{ inputs.date }}
+        ./.nippo-tool/scripts/generate-report.sh --output "$INPUT_OUTPUT" ${INPUT_DATE:+"$INPUT_DATE"}
